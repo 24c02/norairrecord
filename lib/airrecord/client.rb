@@ -19,7 +19,7 @@ module Airrecord
         url: Airrecord.base_url || "https://api.airtable.com",
         headers: {
           "Authorization" => "Bearer #{api_key}",
-          "User-Agent"    => "Airrecord/#{Airrecord::VERSION}",
+          "User-Agent"    => Airrecord.user_agent || "Airrecord (nora's version)/#{Airrecord::VERSION}",
         },
       ) do |conn|
         if Airrecord.throttle?
