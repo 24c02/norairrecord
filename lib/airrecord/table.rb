@@ -38,7 +38,7 @@ module Airrecord
       alias has_one belongs_to
 
       def find(id)
-        response = client.connection.get("/v0/#{base_key}/#{client.escape(table_name)}/#{id}")
+        response = client.connection.get("v0/#{base_key}/#{client.escape(table_name)}/#{id}")
         parsed_response = client.parse(response.body)
 
         if response.success?
@@ -63,7 +63,7 @@ module Airrecord
           **options
         }.to_json
 
-        response = client.connection.patch("/v0/#{base_key}/#{client.escape(table_name)}/#{id}", body, { 'Content-Type' => 'application/json' })
+        response = client.connection.patch("v0/#{base_key}/#{client.escape(table_name)}/#{id}", body, { 'Content-Type' => 'application/json' })
         parsed_response = client.parse(response.body)
 
         if response.success?
@@ -93,7 +93,7 @@ module Airrecord
         options[:maxRecords] = max_records if max_records
         options[:pageSize] = page_size if page_size
 
-        path = "/v0/#{base_key}/#{client.escape(table_name)}/listRecords"
+        path = "v0/#{base_key}/#{client.escape(table_name)}/listRecords"
         response = client.connection.post(path, options.to_json, { 'Content-Type' => 'application/json' })
         parsed_response = client.parse(response.body)
 
@@ -167,7 +167,7 @@ module Airrecord
         **options
       }.to_json
 
-      response = client.connection.post("/v0/#{self.class.base_key}/#{client.escape(self.class.table_name)}", body, { 'Content-Type' => 'application/json' })
+      response = client.connection.post("v0/#{self.class.base_key}/#{client.escape(self.class.table_name)}", body, { 'Content-Type' => 'application/json' })
       parsed_response = client.parse(response.body)
 
       if response.success?
@@ -193,7 +193,7 @@ module Airrecord
     def destroy
       raise Error, "Unable to destroy new record" if new_record?
 
-      response = client.connection.delete("/v0/#{self.class.base_key}/#{client.escape(self.class.table_name)}/#{self.id}")
+      response = client.connection.delete("v0/#{self.class.base_key}/#{client.escape(self.class.table_name)}/#{self.id}")
       parsed_response = client.parse(response.body)
 
       if response.success?

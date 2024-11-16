@@ -16,7 +16,7 @@ module Airrecord
 
     def connection
       @connection ||= Faraday.new(
-        url: "https://api.airtable.com",
+        url: Airrecord.base_url || "https://api.airtable.com",
         headers: {
           "Authorization" => "Bearer #{api_key}",
           "User-Agent"    => "Airrecord/#{Airrecord::VERSION}",

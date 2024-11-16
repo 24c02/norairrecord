@@ -6,7 +6,7 @@ require 'minitest/autorun'
 
 class Minitest::Test
   def stub_delete_request(id, table: @table, status: 202, response_body: "")
-    @stubs.delete("/v0/#{@table.base_key}/#{@table.table_name}/#{id}") do |env|
+    @stubs.delete("v0/#{@table.base_key}/#{@table.table_name}/#{id}") do |env|
       [status, {}, response_body]
     end
   end
@@ -24,7 +24,7 @@ class Minitest::Test
       **options,
     }.to_json
 
-    @stubs.post("/v0/#{table.base_key}/#{table.table_name}", request_body) do |env|
+    @stubs.post("v0/#{table.base_key}/#{table.table_name}", request_body) do |env|
       [status, headers, return_body]
     end
   end
@@ -39,7 +39,7 @@ class Minitest::Test
       }],
       **options,
     }.to_json
-    @stubs.patch("/v0/#{@table.base_key}/#{@table.table_name}/#{record.id}", request_body) do |env|
+    @stubs.patch("v0/#{@table.base_key}/#{@table.table_name}/#{record.id}", request_body) do |env|
       [status, headers, return_body]
     end
   end
@@ -59,7 +59,7 @@ class Minitest::Test
       offset: offset,
     }.to_json
 
-    @stubs.post("/v0/#{table.base_key}/#{table.table_name}/listRecords") do |env|
+    @stubs.post("v0/#{table.base_key}/#{table.table_name}/listRecords") do |env|
       [status, headers, body]
     end
   end
@@ -74,7 +74,7 @@ class Minitest::Test
 
     id ||= record.id
 
-    @stubs.get("/v0/#{table.base_key}/#{table.table_name}/#{id}") do |env|
+    @stubs.get("v0/#{table.base_key}/#{table.table_name}/#{id}") do |env|
       [status, headers, return_body]
     end
   end
@@ -87,7 +87,7 @@ class Minitest::Test
       }
     }.to_json
 
-    @stubs.post("/v0/#{table.base_key}/#{table.table_name}/listRecords") do |env|
+    @stubs.post("v0/#{table.base_key}/#{table.table_name}/listRecords") do |env|
       [status, headers, body]
     end
   end
