@@ -207,6 +207,17 @@ module Airrecord
       fields
     end
 
+    def comment(text)
+      response = client.connection.post("v0/#{self.class.base_key}/#{client.escape(self.class.table_name)}/#{self.id}/comments", {text:}.to_json, { 'Content-Type' => 'application/json' })
+      parsed_response = client.parse(response.body)
+
+      if response.success?
+        parsed_response['id']
+      else
+        client.handle_error(response.status, parsed_response)
+      end
+    end
+
     def ==(other)
       self.class == other.class &&
         serializable_fields == other.serializable_fields
