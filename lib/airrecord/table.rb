@@ -244,7 +244,7 @@ module Airrecord
       end
 
       begin
-        yield
+        result = yield
         self.patch(txn_updates)
 
       rescue => e
@@ -253,6 +253,7 @@ module Airrecord
         singleton_class.alias_method :[]=, :original_setter
         singleton_class.remove_method :original_setter
       end
+      result
     end
 
 
