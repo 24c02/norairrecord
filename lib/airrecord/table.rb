@@ -161,7 +161,7 @@ module Airrecord
     end
 
     def patch(update_hash = {}, options = {})
-      self.fields = self.class.update(self.id, update_hash, options)
+      @fields.merge!(self.class.update(self.id, update_hash, options).reject { |key, _| updated_keys.include?(key) })
     end
 
     def create(options = {})
