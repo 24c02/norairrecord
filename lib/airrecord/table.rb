@@ -73,6 +73,7 @@ module Airrecord
         end
       end
 
+
       def create(fields, options = {})
         new(fields).tap { |record| record.save(options) }
       end
@@ -159,6 +160,10 @@ module Airrecord
       fields[key] = value
     end
 
+    def patch(update_hash = {}, options = {})
+      self.class.update(self.id, update_hash, options)
+    end
+
     def create(options = {})
       raise Error, "Record already exists (record has an id)" unless new_record?
 
@@ -187,7 +192,7 @@ module Airrecord
         [key, fields[key]]
       }]
 
-      self.fields = self.class.update(self.id, update_hash, options)
+      self.fields = self.patch(update_hash, options)
     end
 
     def destroy
@@ -227,6 +232,29 @@ module Airrecord
     def hash
       serializable_fields.hash
     end
+
+    # ahahahahaha
+    def transaction(&block)
+      txn_updates = {}
+
+      singleton_class.alias_method :original_setter, :[]=
+
+      define_singleton_method(:[]=) do |key, value|
+        txn_updates[key] = value
+      end
+
+      begin
+        yield
+        self.patch(txn_updates)
+        @fields.merge!(txn_updates)
+      rescue => e
+        raise
+      ensure
+        singleton_class.alias_method :[]=, :original_setter
+        singleton_class.remove_method :original_setter
+      end
+    end
+
 
     protected
 
