@@ -161,7 +161,7 @@ module Airrecord
     end
 
     def patch(update_hash = {}, options = {})
-      self.class.update(self.id, update_hash, options)
+      self.fields = self.class.update(self.id, update_hash, options)
     end
 
     def create(options = {})
@@ -192,7 +192,7 @@ module Airrecord
         [key, fields[key]]
       }]
 
-      self.fields = self.patch(update_hash, options)
+      self.patch(update_hash, options)
     end
 
     def destroy
@@ -246,7 +246,7 @@ module Airrecord
       begin
         yield
         self.patch(txn_updates)
-        @fields.merge!(txn_updates)
+
       rescue => e
         raise
       ensure
