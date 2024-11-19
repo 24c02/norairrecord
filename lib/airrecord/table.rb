@@ -248,7 +248,12 @@ module Airrecord
       begin
         result = yield self
         @updated_keys -= txn_updates.keys
-        self.patch(txn_updates)
+        if new_record?
+          @fields.merge!(txn_updates)
+          save
+        else
+          self.patch(txn_updates)
+        end
       rescue => e
         raise
       ensure
