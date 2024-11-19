@@ -246,7 +246,7 @@ module Airrecord
       end
 
       begin
-        result = yield
+        result = yield self
         @updated_keys -= txn_updates.keys
         self.patch(txn_updates)
       rescue => e
