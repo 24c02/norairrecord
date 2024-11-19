@@ -161,6 +161,8 @@ module Airrecord
     end
 
     def patch(update_hash = {}, options = {})
+      update_hash.reject! { |key, value| @fields[key] == value }
+      return @fields if update_hash.empty? # don't hit AT if we don't have real changes
       @fields.merge!(self.class.update(self.id, update_hash, options).reject { |key, _| updated_keys.include?(key) })
     end
 
