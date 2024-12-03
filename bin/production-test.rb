@@ -1,8 +1,8 @@
-require 'airrecord'
+require 'norairrecord'
 
 p Faraday::VERSION
 
-Tea = Airrecord.table(
+Tea = Norairrecord.table(
   ENV["AIRTABLE_TOKEN"],
   "appZJC9q8TBYPDF7j",
   "Teas"

@@ -2,17 +2,17 @@
 
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'airrecord/version'
+require 'norairrecord/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "airrecord"
-  spec.version       = Airrecord::VERSION
-  spec.authors       = ["Simon Eskildsen"]
-  spec.email         = ["sirup@sirupsen.com"]
+  spec.name          = "norairrecord"
+  spec.version       = Norairrecord::VERSION
+  spec.authors       = ["nora"]
+  spec.email         = ["nora@hcb.pizza"]
 
   spec.summary       = %q{Airtable client}
-  spec.description   = %q{Airtable client to make Airtable interactions a breeze}
-  spec.homepage      = "https://github.com/sirupsen/airrecord"
+  spec.description   = %q{screwed a cookie to the tabel}
+  spec.homepage      = "https://github.com/24c02/norairrecord"
   spec.license       = "MIT"
 
   spec.files         = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
@@ -26,7 +26,4 @@ Gem::Specification.new do |spec|
   spec.add_dependency "faraday-net_http_persistent"
 
   spec.add_development_dependency "bundler", "~> 2"
-  spec.add_development_dependency "byebug"
-  spec.add_development_dependency "minitest", "~> 5.0"
-  spec.add_development_dependency "rake", "~> 10.0"
 end

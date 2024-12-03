@@ -1,6 +1,6 @@
 require 'thread'
 
-module Airrecord
+module Norairrecord
   class FaradayRateLimiter < Faraday::Middleware
     class << self
       attr_accessor :requests
@@ -57,5 +57,5 @@ end
 
 Faraday::Request.register_middleware(
   # Avoid polluting the global middleware namespace with a prefix.
-  airrecord_rate_limiter: Airrecord::FaradayRateLimiter
+  airrecord_rate_limiter: Norairrecord::FaradayRateLimiter
 )

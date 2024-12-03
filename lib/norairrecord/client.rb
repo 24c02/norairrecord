@@ -1,7 +1,7 @@
 require_relative 'faraday_rate_limiter'
 require 'erb'
 
-module Airrecord
+module Norairrecord
   class Client
     attr_reader :api_key
     attr_writer :connection
@@ -16,13 +16,13 @@ module Airrecord
 
     def connection
       @connection ||= Faraday.new(
-        url: Airrecord.base_url || "https://api.airtable.com",
+        url: Norairrecord.base_url || "https://api.airtable.com",
         headers: {
           "Authorization" => "Bearer #{api_key}",
-          "User-Agent"    => Airrecord.user_agent || "Airrecord (nora's version)/#{Airrecord::VERSION}",
+          "User-Agent"    => Norairrecord.user_agent || "Airrecord (nora's version)/#{Norairrecord::VERSION}",
         },
       ) do |conn|
-        if Airrecord.throttle?
+        if Norairrecord.throttle?
           conn.request :airrecord_rate_limiter, requests_per_second: AIRTABLE_RPS_LIMIT
         end
         conn.adapter :net_http_persistent

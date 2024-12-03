@@ -1,6 +1,6 @@
 require 'rubygems' # For Gem::Version
 
-module Airrecord
+module Norairrecord
   class Table
     class << self
       attr_accessor :base_key, :table_name
@@ -12,7 +12,7 @@ module Airrecord
       end
 
       def api_key
-        defined?(@api_key) ? @api_key : Airrecord.api_key
+        defined?(@api_key) ? @api_key : Norairrecord.api_key
       end
 
       def has_many(method_name, options)
