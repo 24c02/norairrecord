@@ -26,4 +26,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency "faraday-net_http_persistent"
 
   spec.add_development_dependency "bundler", "~> 2"
+  spec.add_development_dependency "rake"
 end
