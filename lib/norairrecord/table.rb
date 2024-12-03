@@ -225,6 +225,10 @@ module Norairrecord
       end
     end
 
+    def airtable_url
+      "https://airtable.com/#{self.class.base_key}/#{self.class.table_name}/#{self.id}"
+    end
+
     def ==(other)
       self.class == other.class &&
         serializable_fields == other.serializable_fields
