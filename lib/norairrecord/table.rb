@@ -193,8 +193,7 @@ module Norairrecord
       update_hash = Hash[@updated_keys.map { |key|
         [key, fields[key]]
       }]
-
-      self.patch(update_hash, options)
+      self.fields = self.class.update(self.id, update_hash, options)
     end
 
     def destroy
