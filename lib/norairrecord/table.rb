@@ -37,12 +37,18 @@ module Norairrecord
 
       alias has_one belongs_to
 
+      def has_subtypes(column, mapping, strict: false)
+        @subtype_column = column
+        @subtype_mapping = mapping
+        @subtype_strict = strict
+      end
+
       def find(id)
         response = client.connection.get("v0/#{base_key}/#{client.escape(table_name)}/#{id}")
         parsed_response = client.parse(response.body)
 
         if response.success?
-          self.new(parsed_response["fields"], id: id, created_at: parsed_response["createdTime"])
+          self.new_with_subtype(parsed_response["fields"], id: id, created_at: parsed_response["createdTime"])
         else
           client.handle_error(response.status, parsed_response)
         end
@@ -78,6 +84,18 @@ module Norairrecord
         new(fields).tap { |record| record.save(options) }
       end
 
+      def new_with_subtype(fields, id:, created_at:)
+        if @subtype_column
+          clazz = self
+          st = @subtype_mapping[fields[@subtype_column]]
+          raise Norairrecord::UnknownTypeError, "#{fields[@subtype_column]}?????" if @subtype_strict && st.nil?
+          clazz =  Kernel.const_get(st) if st
+          clazz.new(fields, id:, created_at:)
+        else
+          self.new(fields, id: id, created_at: created_at)
+        end
+      end
+
       def records(filter: nil, sort: nil, view: nil, offset: nil, paginate: true, fields: nil, max_records: nil, page_size: nil)
         options = {}
         options[:filterByFormula] = filter if filter
@@ -100,8 +118,8 @@ module Norairrecord
 
         if response.success?
           records = parsed_response["records"]
-          records = records.map { |record|
-            self.new(record["fields"], id: record["id"], created_at: record["createdTime"])
+          records.map! { |record|
+            self.new_with_subtype(record["fields"], id: record["id"], created_at: record["createdTime"])
           }
 
           if paginate && parsed_response["offset"]

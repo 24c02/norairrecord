@@ -11,6 +11,7 @@ module Norairrecord
   attr_accessor :api_key, :throttle, :base_url, :user_agent
 
   Error = Class.new(StandardError)
+  UnknownTypeError = Class.new(StandardError)
 
   def throttle?
     return true if @throttle.nil?

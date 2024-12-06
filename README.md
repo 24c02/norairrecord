@@ -30,3 +30,21 @@ stuff not in the OG:
   * `Norairrecord.user_agent = "i'm the reason why you're getting 429s!"`
 * `Table#airtable_url`
   * what it says on the tin!
+* `Table.has_subtypes`
+  * hokay so: 
+  * ```ruby
+    class Friend < Norairrecord::Table
+      # base_key/table_name, etc...
+      has_subtypes "type", { # based on 'type' column...
+        "person" => "Person", # when 'person' instantiate record as Person 
+        "shark" => "Shark"
+      }, strict: true # if strict, unmapped types will raise UnknownTypeError
+      # otherwise they will be instantiated as the base class
+    end
+
+    class Person < Friend; end
+    class Shark < Friend; end
+    
+    Friend.all
+    => [<Person>, <Person>, <Shark>]
+    ```
