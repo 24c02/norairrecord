@@ -40,6 +40,7 @@ module Norairrecord
     end
 
     def handle_error(status, error)
+      raise RecordNotFoundError if status == 404
       if error.is_a?(Hash) && error['error']
         raise Error, "HTTP #{status}: #{error['error']['type']}: #{error['error']['message']}"
       else

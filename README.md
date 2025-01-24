@@ -48,3 +48,7 @@ stuff not in the OG:
     Friend.all
     => [<Person>, <Person>, <Shark>]
     ```
+* `Norairrecord::RecordNotFoundError`
+  * never again wonder if an error is because you goofed up an ID or you're getting ratelimited
+* `where` argument on `has_many` lookups
+* `Table#first`, `Table#first_where`

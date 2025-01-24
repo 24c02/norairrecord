@@ -3,8 +3,15 @@ require 'rubygems' # For Gem::Version
 module Norairrecord
   class Table
     class << self
-      attr_accessor :base_key, :table_name
-      attr_writer :api_key
+      attr_writer :api_key, :base_key, :table_name
+
+      def base_key
+        @base_key || (superclass < Table ? superclass.base_key : nil)
+      end
+
+      def table_name
+        @table_name || (superclass < Table ? superclass.table_name : nil)
+      end
 
       def client
         @@clients ||= {}
@@ -16,12 +23,12 @@ module Norairrecord
       end
 
       def has_many(method_name, options)
-        define_method(method_name.to_sym) do
+        define_method(method_name.to_sym) do |where: nil, sort: nil|
           # Get association ids in reverse order, because Airtable's UI and API
           # sort associations in opposite directions. We want to match the UI.
           ids = (self[options.fetch(:column)] || []).reverse
           table = Kernel.const_get(options.fetch(:class))
-          return table.find_many(ids) unless options[:single]
+          return table.find_many(ids, sort:, where:) unless options[:single]
 
           (id = ids.first) ? table.find(id) : nil
         end
@@ -54,12 +61,13 @@ module Norairrecord
         end
       end
 
-      def find_many(ids)
+      def find_many(ids, where: nil, sort: nil)
         return [] if ids.empty?
 
         or_args = ids.map { |id| "RECORD_ID() = '#{id}'"}.join(',')
         formula = "OR(#{or_args})"
-        records(filter: formula).sort_by { |record| or_args.index(record.id) }
+        formula = "AND(#{formula},#{where})" if where
+        records(filter: formula, sort:).sort_by { |record| or_args.index(record.id) }
       end
 
       def update(id, update_hash = {}, options = {})
@@ -140,8 +148,23 @@ module Norairrecord
           client.handle_error(response.status, parsed_response)
         end
       end
+
+      def first(options = {})
+        records(**options.merge(max_records: 1)).first
+      end
+
+      def first_where(filter, options = {})
+        first(options.merge(filter:))
+      end
+
+      def where(filter, options = {})
+        records(**options.merge(filter:))
+      end
+
       alias all records
     end
+
+
 
     attr_reader :fields, :id, :created_at, :updated_keys
 
