@@ -16,7 +16,7 @@ module Norairrecord
 
     def connection
       @connection ||= Faraday.new(
-        url: Norairrecord.base_url || "https://api.airtable.com",
+        url: Norairrecord.base_url || ENV['AIRTABLE_ENDPOINT_URL'] || "https://api.airtable.com",
         headers: {
           "Authorization" => "Bearer #{api_key}",
           "User-Agent"    => Norairrecord.user_agent || "Airrecord (nora's version)/#{Norairrecord::VERSION}",

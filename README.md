@@ -26,6 +26,7 @@ stuff not in the OG:
 * custom endpoint URL
   * handy for inspecting/ratelimiting
   * `Norairrecord.base_url = "https://somewhere_else"`
+  * or `ENV['AIRTABLE_ENDPOINT_URL']`
 * custom UA
   * `Norairrecord.user_agent = "i'm the reason why you're getting 429s!"`
 * `Table#airtable_url`
