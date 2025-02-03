@@ -283,7 +283,7 @@ module Norairrecord
     def transaction(&block)
       txn_updates = {}
 
-      singleton_class.alias_method :original_setter, :[]=
+      singleton_class.define_method(:original_setter, method(:[]=))
 
       define_singleton_method(:[]=) do |key, value|
         txn_updates[key] = value
@@ -301,8 +301,8 @@ module Norairrecord
       rescue => e
         raise
       ensure
-        singleton_class.alias_method :[]=, :original_setter
-        singleton_class.remove_method :original_setter
+        singleton_class.define_method(:[]=, method(:original_setter))
+        singleton_class.remove_method(:original_setter)
       end
       result
     end
