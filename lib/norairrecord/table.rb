@@ -2,6 +2,8 @@ require 'rubygems' # For Gem::Version
 
 module Norairrecord
   class Table
+    BATCH_SIZE = 10
+
     class << self
       attr_writer :api_key, :base_key, :table_name
 
@@ -64,7 +66,7 @@ module Norairrecord
       def find_many(ids, where: nil, sort: nil)
         return [] if ids.empty?
 
-        or_args = ids.map { |id| "RECORD_ID() = '#{id}'"}.join(',')
+        or_args = ids.map { |id| "RECORD_ID() = '#{id}'" }.join(',')
         formula = "OR(#{or_args})"
         formula = "AND(#{formula},#{where})" if where
         records(filter: formula, sort:).sort_by { |record| or_args.index(record.id) }
@@ -87,7 +89,6 @@ module Norairrecord
         end
       end
 
-
       def create(fields, options = {})
         new(fields).tap { |record| record.save(options) }
       end
@@ -97,7 +98,7 @@ module Norairrecord
           clazz = self
           st = @subtype_mapping[fields[@subtype_column]]
           raise Norairrecord::UnknownTypeError, "#{fields[@subtype_column]}?????" if @subtype_strict && st.nil?
-          clazz =  Kernel.const_get(st) if st
+          clazz = Kernel.const_get(st) if st
           clazz.new(fields, id:, created_at:)
         else
           self.new(fields, id: id, created_at: created_at)
@@ -125,22 +126,19 @@ module Norairrecord
         parsed_response = client.parse(response.body)
 
         if response.success?
-          records = parsed_response["records"]
-          records.map! { |record|
-            self.new_with_subtype(record["fields"], id: record["id"], created_at: record["createdTime"])
-          }
+          records = map_new parsed_response["records"]
 
           if paginate && parsed_response["offset"]
             records.concat(records(
-              filter: filter,
-              sort: sort,
-              view: view,
-              paginate: paginate,
-              fields: fields,
-              offset: parsed_response["offset"],
-              max_records: max_records,
-              page_size: page_size,
-            ))
+                             filter: filter,
+                             sort: sort,
+                             view: view,
+                             paginate: paginate,
+                             fields: fields,
+                             offset: parsed_response["offset"],
+                             max_records: max_records,
+                             page_size: page_size,
+                           ))
           end
 
           records
@@ -161,10 +159,105 @@ module Norairrecord
         records(**options.merge(filter:))
       end
 
+      def map_new(arr)
+        arr.map do |record|
+          self.new_with_subtype(record["fields"], id: record["id"], created_at: record["createdTime"])
+        end
+      end
+
+      def batch_update(recs, options = {})
+        res = []
+        recs.each_slice(BATCH_SIZE) do |chunk|
+          body = {
+            records: chunk.map do |record|
+              {
+                fields: record.update_hash,
+                id: record.id,
+              }
+            end,
+            **options
+          }.to_json
+
+          response = client.connection.patch("v0/#{base_key}/#{client.escape(table_name)}", body, { 'Content-Type' => 'application/json' })
+          parsed_response = client.parse(response.body)
+          if response.success?
+            res.concat(parsed_response["records"])
+          else
+            client.handle_error(response.status, parsed_response)
+          end
+        end
+        map_new res
+      end
+
+      def batch_upsert(recs, merge_fields, options = {}, include_ids: nil, hydrate: false)
+        merge_fields = Array(merge_fields) # allows passing in a single field
+
+        created, updated, records = [], [], []
+
+        recs.each_slice(BATCH_SIZE) do |chunk|
+          body = {
+            records: chunk.map { |rec| { fields: rec.fields, id: (include_ids ? rec.id : nil) }.compact },
+            **options,
+            performUpsert: { fieldsToMergeOn: merge_fields }
+          }.to_json
+
+          response = client.connection.patch("v0/#{base_key}/#{client.escape(table_name)}", body, { 'Content-Type' => 'application/json' })
+          parsed_response = response.success? ? client.parse(response.body) : client.handle_error(response.status, client.parse(response.body))
+
+          if response.success?
+            created.concat(parsed_response.fetch('createdRecords', []))
+            updated.concat(parsed_response.fetch('updatedRecords', []))
+            records.concat(parsed_response.fetch('records', []))
+          else
+            client.handle_error(response.status, parsed_response)
+          end
+        end
+
+        if hydrate && records.any?
+          record_hash = records.map { |record| [record["id"], self.new_with_subtype(record["fields"], id: record["id"], created_at: record["createdTime"])] }.to_h
+
+          created.map! { |id| record_hash[id] }.compact!
+          updated.map! { |id| record_hash[id] }.compact!
+          records = record_hash.values
+        end
+
+        { created:, updated:, records: }
+      end
+
+      def batch_create(recs, options = {})
+        records = []
+        recs.each_slice(BATCH_SIZE) do |chunk|
+          body = {
+            records: chunk.map { |record| { fields: record.serializable_fields } },
+            **options
+          }.to_json
+
+          response = client.connection.post("v0/#{base_key}/#{client.escape(table_name)}", body, { 'Content-Type' => 'application/json' })
+          parsed_response = client.parse(response.body)
+
+          if response.success?
+            records.concat(parsed_response["records"])
+          else
+            client.handle_error(response.status, parsed_response)
+          end
+        end
+        map_new records
+      end
+
+      def upsert(fields, merge_fields, options = {})
+        record = batch_upsert([self.new(fields)], merge_fields, options)&.dig(:records, 0)
+        record ? new(record) : nil
+      end
+
+      def batch_save(records)
+        res = []
+        to_be_created, to_be_updated = records.partition &:new_record?
+        res.concat(batch_create(to_be_created))
+        res.concat(batch_update(to_be_updated))
+      end
+
       alias all records
     end
-
-
 
     attr_reader :fields, :id, :created_at, :updated_keys
 
@@ -201,10 +294,10 @@ module Norairrecord
       fields[key] = value
     end
 
-    def patch(update_hash = {}, options = {})
-      update_hash.reject! { |key, value| @fields[key] == value }
-      return @fields if update_hash.empty? # don't hit AT if we don't have real changes
-      @fields.merge!(self.class.update(self.id, update_hash, options).reject { |key, _| updated_keys.include?(key) })
+    def patch(updates = {}, options = {})
+      updates.reject! { |key, value| @fields[key] == value }
+      return @fields if updates.empty? # don't hit AT if we don't have real changes
+      @fields.merge!(self.class.update(self.id, updates, options).reject { |key, _| updated_keys.include?(key) })
     end
 
     def create(options = {})
@@ -230,11 +323,13 @@ module Norairrecord
     def save(options = {})
       return create(options) if new_record?
       return true if @updated_keys.empty?
+      self.fields = self.class.update(self.id, self.update_hash, options)
+    end
 
-      update_hash = Hash[@updated_keys.map { |key|
+    def update_hash
+      Hash[@updated_keys.map { |key|
         [key, fields[key]]
       }]
-      self.fields = self.class.update(self.id, update_hash, options)
     end
 
     def destroy
@@ -255,7 +350,7 @@ module Norairrecord
     end
 
     def comment(text)
-      response = client.connection.post("v0/#{self.class.base_key}/#{client.escape(self.class.table_name)}/#{self.id}/comments", {text:}.to_json, { 'Content-Type' => 'application/json' })
+      response = client.connection.post("v0/#{self.class.base_key}/#{client.escape(self.class.table_name)}/#{self.id}/comments", { text: }.to_json, { 'Content-Type' => 'application/json' })
       parsed_response = client.parse(response.body)
 
       if response.success?
@@ -273,6 +368,7 @@ module Norairrecord
       self.class == other.class &&
         serializable_fields == other.serializable_fields
     end
+
     alias eql? ==
 
     def hash
@@ -306,7 +402,6 @@ module Norairrecord
       end
       result
     end
-
 
     protected
 
