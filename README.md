@@ -56,3 +56,6 @@ stuff not in the OG:
 * you're not gonna believe it:
   * `Table.batch_`{update,upsert,create,save}
   * makes ratelimits much less painful
+* `Util` (those little methods we have to keep writing again and again, now in one place)
+* custom RPS limit
+  * `Norairrecord.rps_limit = 3`
