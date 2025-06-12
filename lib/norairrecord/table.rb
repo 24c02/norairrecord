@@ -7,12 +7,24 @@ module Norairrecord
     class << self
       attr_writer :api_key, :base_key, :table_name
 
+      include Norairrecord::Util
+
       def base_key
         @base_key || (superclass < Table ? superclass.base_key : nil)
       end
 
       def table_name
         @table_name || (superclass < Table ? superclass.table_name : nil)
+      end
+
+
+      # finds the actual parent class of a (possibly) subtype class
+      def responsible_class
+        if @base_key
+          self.class
+        else
+          superclass < Table ? superclass.responsible_class : nil
+        end
       end
 
       def client
@@ -66,9 +78,8 @@ module Norairrecord
       def find_many(ids, where: nil, sort: nil)
         return [] if ids.empty?
 
-        or_args = ids.map { |id| "RECORD_ID() = '#{id}'" }.join(',')
-        formula = "OR(#{or_args})"
-        formula = "AND(#{formula},#{where})" if where
+        formula = any_of(ids.map { |id| "RECORD_ID() = '#{id}'" })
+        formula = all_of(formula, where) if where
         records(filter: formula, sort:).sort_by { |record| or_args.index(record.id) }
       end
 
