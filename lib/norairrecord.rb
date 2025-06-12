@@ -9,7 +9,7 @@ require "norairrecord/table"
 
 module Norairrecord
   extend self
-  attr_accessor :api_key, :throttle, :base_url, :user_agent
+  attr_accessor :api_key, :throttle, :base_url, :user_agent, :rps_limit
 
   Error = Class.new(StandardError)
   UnknownTypeError = Class.new(Error)

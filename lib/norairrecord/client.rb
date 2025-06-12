@@ -23,7 +23,7 @@ module Norairrecord
         },
       ) do |conn|
         if Norairrecord.throttle?
-          conn.request :airrecord_rate_limiter, requests_per_second: AIRTABLE_RPS_LIMIT
+          conn.request :airrecord_rate_limiter, requests_per_second: Norairrecord.rps_limit || AIRTABLE_RPS_LIMIT
         end
         conn.adapter :net_http_persistent
       end
