@@ -48,7 +48,7 @@ module Norairrecord
         end
 
         define_method("#{method_name}=".to_sym) do |value|
-          self[options.fetch(:column)] = Array(value).map(&:id).reverse
+          __set_field(options.fetch(:column), Array(value).map(&:id).reverse)
         end
       end
 
@@ -83,7 +83,7 @@ module Norairrecord
         records(filter: formula, sort:).sort_by { |record| or_args.index(record.id) }
       end
 
-      def update(id, update_hash = {}, options = {})
+      def _update(id, update_hash = {}, options = {})
         # To avoid trying to update computed fields we *always* use PATCH
         body = {
           fields: update_hash,
@@ -100,9 +100,16 @@ module Norairrecord
         end
       end
 
-      def create(fields, options = {})
-        new(fields).tap { |record| record.save(options) }
+      def _new(*args, **kwargs)
+        new(*args, **kwargs)
       end
+
+      def _create(fields, options = {})
+        _new(fields).tap { |record| record._save(options) }
+      end
+
+      alias update _update
+      alias create _create
 
       def new_with_subtype(fields, id:, created_at:)
         if @subtype_column
@@ -110,9 +117,9 @@ module Norairrecord
           st = @subtype_mapping[fields[@subtype_column]]
           raise Norairrecord::UnknownTypeError, "#{fields[@subtype_column]}?????" if @subtype_strict && st.nil?
           clazz = Kernel.const_get(st) if st
-          clazz.new(fields, id:, created_at:)
+          clazz._new(fields, id:, created_at:)
         else
-          self.new(fields, id: id, created_at: created_at)
+          self._new(fields, id: id, created_at: created_at)
         end
       end
 
@@ -256,8 +263,8 @@ module Norairrecord
       end
 
       def upsert(fields, merge_fields, options = {})
-        record = batch_upsert([self.new(fields)], merge_fields, options)&.dig(:records, 0)
-        record ? new(record) : nil
+        record = batch_upsert([self._new(fields)], merge_fields, options)&.dig(:records, 0)
+        record ? _new(record) : nil
       end
 
       def batch_save(records)
@@ -297,7 +304,7 @@ module Norairrecord
       fields[key]
     end
 
-    def []=(key, value)
+    def __set_field(key, value)
       validate_key(key)
       return if fields[key] == value # no-op
 
@@ -305,13 +312,15 @@ module Norairrecord
       fields[key] = value
     end
 
+    alias []= __set_field
+
     def patch(updates = {}, options = {})
       updates.reject! { |key, value| @fields[key] == value }
       return @fields if updates.empty? # don't hit AT if we don't have real changes
-      @fields.merge!(self.class.update(self.id, updates, options).reject { |key, _| updated_keys.include?(key) })
+      @fields.merge!(self.class._update(self.id, updates, options).reject { |key, _| updated_keys.include?(key) })
     end
 
-    def create(options = {})
+    def _create(options = {})
       raise Error, "Record already exists (record has an id)" unless new_record?
 
       body = {
@@ -331,11 +340,14 @@ module Norairrecord
       end
     end
 
-    def save(options = {})
-      return create(options) if new_record?
+    def _save(options = {})
+      return _create(options) if new_record?
       return true if @updated_keys.empty?
-      self.fields = self.class.update(self.id, self.update_hash, options)
+      self.fields = self.class._update(self.id, self.update_hash, options)
     end
+
+    alias create _create
+    alias save _save
 
     def update_hash
       Hash[@updated_keys.map { |key|
@@ -390,18 +402,20 @@ module Norairrecord
     def transaction(&block)
       txn_updates = {}
 
-      singleton_class.define_method(:original_setter, method(:[]=))
+      singleton_class.define_method(:original_setter, method(:__set_field))
 
-      define_singleton_method(:[]=) do |key, value|
+      define_singleton_method(:__set_field) do |key, value|
         txn_updates[key] = value
       end
+
+      singleton_class.send(:alias_method, :[]=, :__set_field)
 
       begin
         result = yield self
         @updated_keys -= txn_updates.keys
         if new_record?
           @fields.merge!(txn_updates)
-          save
+          _save
         else
           self.patch(txn_updates)
         end
