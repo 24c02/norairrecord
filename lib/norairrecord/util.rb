@@ -17,7 +17,7 @@ module Norairrecord
     end
 
     def sanitize(arg)
-      arg.gsub(/['"]/, '\\\\\0')
+      arg.gsub(/['"\\]/, '\\\\\0')
     end
 
     def mass_sanitize(*args)
